@@ -7,13 +7,12 @@ def load_meta():
 
 def load(path, meta, cols=['Survived','Pclass','Name','Sex','Age','SibSp','Parch','Ticket']):
     features = pd.read_csv(path, usecols=cols)
-    def normalize_feature(nm):
-        nparr = np.array(features[nm]) - meta[nm]
-        return nparr / max(np.abs(nparr))
-    for nom in ['Age', 'Name', 'Ticket']:
-        if nom in list(pd.DataFrame().columns):
-            features.loc[:, nom] = normalize_feature(nom)
+    for nom in ['Pclass','Name','Age','SibSp','Parch','Ticket']:
+        if nom in list(features.columns):
+            nparr = np.array(features[nom]) - meta[nom]
+            features.loc[:, nom] = nparr / max(np.abs(nparr))
     return features
+    # Pclass should be divided to 3 features determining each class
 
 def load_dataset(meta):
     data = load('dataset/train.csv', meta)
@@ -37,7 +36,8 @@ def main():
     model.compile(optimizer=tf.keras.optimizers.SGD(), loss='mse', metrics=['accuracy'])
     metadata = load_meta()
     x_train, y_train = load_dataset(metadata)
-    history = model.fit(x=x_train, y=y_train, batch_size=32, epochs=1, validation_split=0.1)
+    print(x_train)
+    history = model.fit(x=x_train, y=y_train, batch_size=32, epochs=10, validation_split=0.1)
     model.save('models/pre.h5')
     print("="*50)
     print(history.history)
