@@ -10,9 +10,9 @@ def load(path, meta, cols=['Survived','Pclass','Name','Sex','Age','SibSp','Parch
     def normalize_feature(nm):
         nparr = np.array(features[nm]) - meta[nm]
         return nparr / max(np.abs(nparr))
-    features.loc[:, 'Age'] = normalize_feature('Age')
-    features.loc[:, 'Name'] = normalize_feature('Name')
-    features.loc[:, 'Ticket'] = normalize_feature('Ticket')
+    for nom in ['Age', 'Name', 'Ticket']:
+        if nom in list(pd.DataFrame().columns):
+            features.loc[:, nom] = normalize_feature(nom)
     return features
 
 def load_dataset(meta):
@@ -43,7 +43,12 @@ def main():
     print(history.history)
     o = load_test(metadata)
     labels = model.predict(x=o)
-    print(labels)
+    labels = pd.DataFrame(labels, columns=['S', 'M'])
+    labels = pd.Series(np.where(labels['S'] > labels['M'], 1, 0))
+    result = load('dataset/test_id.csv', metadata, ['PassengerId'])
+    result = pd.concat([result, labels], axis=1)
+    print(result)
+    result.to_csv('output.csv')
 
 if __name__=='__main__':
     main()
