@@ -2,12 +2,13 @@ import tensorflow as tf
 import pandas as pd
 import numpy as np
 
-META = None
+META = pd.DataFrame()
 
 def load(path, cols=['Survived','Name','Sex','Age','SibSp','Parch','Ticket','Fare']):
     global META
     features = pd.read_csv(path, usecols=cols)
-    META = features.describe()
+    if META.empty:
+        META = features.describe()
     for nom in ['Name','Age','SibSp','Parch','Ticket','Fare']:
         if nom in list(features.columns):
             nparr = np.array(features[nom]) - META[nom]['mean']
@@ -32,6 +33,7 @@ def load_test():
     return load('dataset/test.csv', ['Name','Sex','Age','SibSp','Parch','Ticket','Fare'])
 
 def main():
+    global META
     # Setup model
     tf.keras.backend.clear_session()
     inputs = tf.keras.Input(shape=(8,))
@@ -41,12 +43,15 @@ def main():
     outputs = tf.keras.layers.Dense(2, activation='softmax')(x)
     model = tf.keras.Model(inputs=inputs, outputs=outputs, name='titanic_model')
     model.summary()
-    model.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.001), loss='mse', metrics=['accuracy'])
+    model.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.01), loss='mse', metrics=['accuracy'])
+    model.load_weights('models/pre.h5')
+    META = pd.read_csv('models/pre.meta', index_col=0)
     # Train model
     x_train, y_train = load_dataset()
     print(x_train)
     history = model.fit(x=x_train, y=y_train, batch_size=32, epochs=50, validation_split=0.1)
     model.save('models/pre.h5')
+    META.to_csv('models/pre.meta')
     print("$"*50)
     print('Accuracy list', history.history['acc'])
     print("$"*50)
