@@ -7,7 +7,7 @@ def load_meta():
 
 def load(path, meta, cols=['Survived','Name','Sex','Age','SibSp','Parch','Ticket','Fare']):
     features = pd.read_csv(path, usecols=cols)
-    for nom in ['Name','Sex','Age','SibSp','Parch','Ticket','Fare']:
+    for nom in ['Name','Age','SibSp','Parch','Ticket','Fare']:
         if nom in list(features.columns):
             nparr = np.array(features[nom]) - meta[nom]
             features.loc[:, nom] = nparr / max(np.abs(nparr))
@@ -31,9 +31,10 @@ def load_test(meta):
     return load('dataset/test.csv', meta, ['Name','Sex','Age','SibSp','Parch','Ticket','Fare'])
 
 def main():
+    # Setup model
     tf.keras.backend.clear_session()
-    inputs = tf.keras.Input(shape=(9,))
-    x = tf.keras.layers.Dense(64)(inputs)
+    inputs = tf.keras.Input(shape=(8,))
+    x = tf.keras.layers.Dense(16)(inputs)
     x = tf.keras.layers.BatchNormalization()(x)
     x = tf.keras.layers.LeakyReLU(alpha=0.1)(x)
     outputs = tf.keras.layers.Dense(2, activation='softmax')(x)
@@ -41,21 +42,40 @@ def main():
     model.summary()
     model.compile(optimizer=tf.keras.optimizers.SGD(learning_rate=0.001), loss='mse', metrics=['accuracy'])
     metadata = load_meta()
+    # Train model
     x_train, y_train = load_dataset(metadata)
     print(x_train)
-    history = model.fit(x=x_train, y=y_train, batch_size=32, epochs=100, validation_split=0.1)
+    history = model.fit(x=x_train, y=y_train, batch_size=32, epochs=2, validation_split=0.1)
     model.save('models/pre.h5')
-    print("="*50)
-    print(history.history['acc'])
+    print("$"*50)
+    print('Accuracy list', history.history['acc'])
+    print("$"*50)
+    # Get output on test dataset
     o = load_test(metadata)
     labels = model.predict(x=o)
     labels = pd.DataFrame(labels, columns=['S', 'M'])
     labels = pd.Series(np.where(labels['S'] > labels['M'], 1, 0))
     result = load('dataset/test_id.csv', metadata, ['PassengerId'])
     result = pd.concat([result, labels], axis=1)
-    result.rename(columns={0:'Survived'}, inplace=True)
+    result.rename(columns={0: 'Survived'}, inplace=True)
     print(result)
     result.to_csv('output.csv', index=False)
+    print("$"*50)
+    # Recall and Precision on train.csv
+    x_test = load('dataset/train.csv', metadata)
+    labels = model.predict(x=x_test.drop('Survived', axis=1))
+    labels = pd.DataFrame(labels, columns=['S', 'M'])
+    labels = pd.Series(np.where(labels['S'] > labels['M'], 1, 0))
+    result = pd.concat([x_test, labels], axis=1)
+    result.rename(columns={0: 'Predicted'}, inplace=True)
+    print(result)
+    correct_result = np.asarray(result['Survived']==result['Predicted'])
+    true_positives = float(np.sum(result.loc[correct_result, 'Survived']))
+    correct_result = np.sum(correct_result)
+    positives = np.sum(result['Predicted'])
+    precision = true_positives / correct_result
+    recall = true_positives / positives
+    print("Precision:", precision, "| Recall:", recall)
 
 if __name__=='__main__':
     main()
