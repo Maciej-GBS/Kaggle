@@ -77,10 +77,9 @@ def main():
     correct_result = np.asarray(result['Survived']==result['Predicted'])
     true_positives = float(np.sum(result.loc[correct_result, 'Survived']))
     correct_result = np.sum(correct_result)
-    positives = np.sum(result['Predicted'])
     accuracy = correct_result / len(result)
-    precision = true_positives / correct_result
-    recall = true_positives / positives
+    precision = true_positives / np.sum(result['Predicted'])
+    recall = true_positives / np.sum(result['Survived'])
     print("Accuracy:", accuracy, "| Precision:", precision, "| Recall:", recall)
 
 if __name__=='__main__':
