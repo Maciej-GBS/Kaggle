@@ -5,9 +5,9 @@ import numpy as np
 def load_meta():
     return dict(pd.read_csv('meta_mean.csv').loc[0, :])
 
-def load(path, meta, cols=['Survived','Name','Sex','Age','SibSp','Parch','Ticket','Fare']):
+def load(path, meta, cols=['Survived','Pclass','Name','Sex','Age','SibSp','Parch','Ticket']):
     features = pd.read_csv(path, usecols=cols)
-    for nom in ['Name','Sex','Age','SibSp','Parch','Ticket','Fare']:
+    for nom in ['Name','Age','SibSp','Parch','Ticket']:
         if nom in list(features.columns):
             nparr = np.array(features[nom]) - meta[nom]
             features.loc[:, nom] = nparr / max(np.abs(nparr))
@@ -15,12 +15,10 @@ def load(path, meta, cols=['Survived','Name','Sex','Age','SibSp','Parch','Ticket
         classe = pd.DataFrame({'1st':np.where(features['Pclass']==1,1,0), '2nd':np.where(features['Pclass']==2,1,0), '3rd':np.where(features['Pclass']==3,1,0)})
         features = features.drop('Pclass', axis=1)
         features = pd.concat([features, classe], axis=1)
-    if 'Age' in list(features.columns):
-        features = pd.concat([features, pd.DataFrame({'Age2': np.square(np.array(features['Age']))})], axis=1)
     return features
 
 def load_dataset(meta):
-    data = load('dataset/train_g.csv', meta)
+    data = load('dataset/train.csv', meta)
     data.to_csv('internal.csv', index=False)
     features = data.drop('Survived', axis=1)
     y_dash = data['Survived'].tolist()
@@ -28,7 +26,7 @@ def load_dataset(meta):
     return features, y_dash
 
 def load_test(meta):
-    return load('dataset/test.csv', meta, ['Name','Sex','Age','SibSp','Parch','Ticket','Fare'])
+    return load('dataset/test.csv', meta, ['Pclass','Name','Sex','Age','SibSp','Parch','Ticket'])
 
 def main():
     tf.keras.backend.clear_session()
